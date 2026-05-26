@@ -11,6 +11,8 @@
 # raw data file
 /data
 
+# analisys plots
+/data_analisys
 # IPython
 profile_default/
 ipython_config.py

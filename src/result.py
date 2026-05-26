@@ -40,13 +40,12 @@ async def upload_page():
     return get_html_response("upload.html")
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    app.state.model_package = joblib.load(PROJECT_ROOT / 'models' / 'churn_predictor_pipeline.pkl')
-    yield
 
-loaded_pipeline = app.state.model_package['pipeline']
-expected_columns = app.state.model_package['features']
+model_package = joblib.load(PROJECT_ROOT / 'models' / 'churn_predictor_pipeline.pkl')
+    
+
+loaded_pipeline = model_package['pipeline']
+expected_columns = model_package['features']
 num_features = expected_columns['numerical']
 cat_features = expected_columns['categorical']
 
@@ -56,10 +55,10 @@ for feature in cat_features:
 for feature in num_features:
     fields[feature] = (Optional[float], None)   
 
-client = create_model('client', **fields)
+Client = create_model('Client', **fields)
 
 @app.post("/predict")
-async def predict(data: client):
+async def predict(data: Client):
     # data автоматично провалідується. 
     # Перетворюємо в словник, щоб передати в модель
     input_dict = data.model_dump() # або .dict() для старіших версій pydantic
@@ -130,7 +129,7 @@ async def upload_csv(file: UploadFile = File(...)):
             # Перевірка 1: Тип контракту
             if 'Contract' in df_churn.columns:
                 m2m_pct = (df_churn['Contract'] == 'Month-to-month').mean() * 100
-                if m2m_pct > 50: # Якщо більше половини втікачів на короткому контракті
+                if m2m_pct > 50: 
                     reasons_pool.append({
                         "factor": "Короткострокові контракти (Month-to-month)",
                         "impact": f"{round(m2m_pct, 1)}% клієнтів з групи ризику не мають довгострокових зобов'язань."
