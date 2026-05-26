@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Churn Analytics Hub</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f4f6f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .menu-container { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 25px rgba(0,0,0,0.08); text-align: center; max-width: 500px; width: 100%; }
+        h1 { color: #1a73e8; margin-bottom: 30px; }
+        .btn { display: block; padding: 15px; margin: 15px 0; background: #1a73e8; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 18px; transition: background 0.2s; }
+        .btn:hover { background: #1557b0; }
+        .btn-secondary { background: #34a853; }
+        .btn-secondary:hover { background: #2d8e47; }
+    </style>
+</head>
+<body>
+    <div class="menu-container">
+        <h1>Аналітика відтоку Telco</h1>
+        <p>Оберіть інструмент для роботи з моделлю:</p>
+        <a href="/predict-page" class="btn">📊 Окремий аналіз (Форма)</a>
+        <a href="/upload-page" class="btn btn-secondary">📁 Пакетний аналіз (Завантажити CSV)</a>
+    </div>
+</body>
+</html>

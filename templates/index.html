@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Telco Churn Prediction Portal</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f4f6f9; padding: 30px; margin: 0; color: #333; }
+        .container { max-width: 750px; background: white; padding: 35px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); margin: 0 auto; }
+        h2 { text-align: center; color: #1a73e8; margin-top: 0; margin-bottom: 30px; }
+        
+        fieldset { border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin-bottom: 25px; background-color: #fbfcfd; }
+        legend { font-weight: bold; color: #1a73e8; padding: 0 10px; font-size: 16px; }
+        
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .form-group { display: flex; flex-direction: column; }
+        .form-group.full-width { grid-column: span 2; }
+        
+        label { margin-bottom: 6px; font-weight: 6px; font-size: 14px; color: #4e555b; }
+        input, select { padding: 10px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px; background-color: #fff; box-sizing: border-box; width: 100%; }
+        input:focus, select:focus { border-color: #80bdff; outline: 0; box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25); }
+        
+        button { width: 100%; padding: 14px; background: #1a73e8; border: none; color: white; font-size: 16px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: background 0.2s; margin-top: 10px; }
+        button:hover { background: #1557b0; }
+        
+        #result { margin-top: 25px; padding: 20px; border-radius: 8px; display: none; text-align: center; font-size: 18px; font-weight: bold; }
+        .churn { background-color: #fce8e6; color: #a51d24; border: 1px solid #f5c6cb; }
+        .loyal { background-color: #e6f4ea; color: #137333; border: 1px solid #c3e6cb; }
+    </style>
+</head>
+<body>
+
+<a href="/" style="display:inline-block; margin-bottom:20px; color:#1a73e8; text-decoration:none; font-weight:bold;">← На головну</a>
+
+<div class="container">
+    <h2>Повний аналіз ризику відтоку клієнта</h2>
+    
+    <form id="churnForm">
+        
+        <!-- БЛОК 1: ДЕМОГРАФІЯ ТА ЧИСЛОВІ ДАНІ -->
+        <fieldset>
+            <legend>1. Особисті дані та активність</legend>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="gender">Стать (gender):</label>
+                    <select id="gender">
+                        <option value="Female">Жіноча (Female)</option>
+                        <option value="Male">Чоловіча (Male)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="SeniorCitizen">Пенсіонер (SeniorCitizen):</label>
+                    <select id="SeniorCitizen">
+                        <option value="0">Ні (0)</option>
+                        <option value="1">Так (1)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="Partner">Є партнер/у шлюбі (Partner):</label>
+                    <select id="Partner">
+                        <option value="No">Ні (No)</option>
+                        <option value="Yes">Так (Yes)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="Dependents">Є утриманці/діти (Dependents):</label>
+                    <select id="Dependents">
+                        <option value="No">Ні (No)</option>
+                        <option value="Yes">Так (Yes)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="tenure">Місяців у компанії (tenure):</label>
+                    <input type="number" id="tenure" required min="0" value="12">
+                </div>
+            </div>
+        </fieldset>
+
+        <!-- БЛОК 2: ТЕЛЕФОНІЯ -->
+        <fieldset>
+            <legend>2. Послуги зв'язку</legend>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="PhoneService">Телефонний зв'язок (PhoneService):</label>
+                    <select id="PhoneService">
+                        <option value="Yes">Так (Yes)</option>
+                        <option value="No">Ні (No)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="MultipleLines">Кілька ліній (MultipleLines):</label>
+                    <select id="MultipleLines">
+                        <option value="No">Ні (No)</option>
+                        <option value="Yes">Так (Yes)</option>
+                        <option value="No phone service">Немає телефону (No phone service)</option>
+                    </select>
+                </div>
+            </div>
+        </fieldset>
+
+        <!-- БЛОК 3: ІНТЕРНЕТ ТА ДОДАТКОВІ ПОСЛУГИ -->
+        <fieldset>
+            <legend>3. Інтернет-сервіси</legend>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="InternetService">Тип інтернету (InternetService):</label>
+                    <select id="InternetService">
+                        <option value="Fiber optic">Оптоволокно (Fiber optic)</option>
+                        <option value="DSL">DSL</option>
+                        <option value="No">Немає інтернету (No)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="OnlineSecurity">Блокування загроз (OnlineSecurity):</label>
+                    <select id="OnlineSecurity">
+                        <option value="No">Ні (No)</option>
+                        <option value="Yes">Так (Yes)</option>
+                        <option value="No internet service">Немає інтернету (No internet service)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="OnlineBackup">Хмарний бекап (OnlineBackup):</label>
+                    <select id="OnlineBackup">
+                        <option value="No">Ні (No)</option>
+                        <option value="Yes">Так (Yes)</option>
+                        <option value="No internet service">Немає інтернету (No internet service)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="DeviceProtection">Страхування пристроїв (DeviceProtection):</label>
+                    <select id="DeviceProtection">
+                        <option value="No">Ні (No)</option>
+                        <option value="Yes">Так (Yes)</option>
+                        <option value="No internet service">Немає інтернету (No internet service)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="TechSupport">Пріоритетна техпідтримка (TechSupport):</label>
+                    <select id="TechSupport">
+                        <option value="No">Ні (No)</option>
+                        <option value="Yes">Так (Yes)</option>
+                        <option value="No internet service">Немає інтернету (No internet service)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="StreamingTV">Інтернет-ТБ (StreamingTV):</label>
+                    <select id="StreamingTV">
+                        <option value="No">Ні (No)</option>
+                        <option value="Yes">Так (Yes)</option>
+                        <option value="No internet service">Немає інтернету (No internet service)</option>
+                    </select>
+                </div>
+                <div class="form-group.full-width" style="grid-column: span 2;">
+                    <label for="StreamingMovies">Стрімінгові фільми (StreamingMovies):</label>
+                    <select id="StreamingMovies">
+                        <option value="No">Ні (No)</option>
+                        <option value="Yes">Так (Yes)</option>
+                        <option value="No internet service">Немає інтернету (No internet service)</option>
+                    </select>
+                </div>
+            </div>
+        </fieldset>
+
+        <!-- БЛОК 4: ФІНАНСИ -->
+        <fieldset>
+            <legend>4. Контракт та оплата</legend>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="Contract">Тип контракту (Contract):</label>
+                    <select id="Contract">
+                        <option value="Month-to-month">Помісячно (Month-to-month)</option>
+                        <option value="One year">На рік (One year)</option>
+                        <option value="Two year">На два роки (Two year)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="PaperlessBilling">Електронний рахунок (PaperlessBilling):</label>
+                    <select id="PaperlessBilling">
+                        <option value="Yes">Так (Yes)</option>
+                        <option value="No">Ні (No)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="PaymentMethod">Спосіб оплати (PaymentMethod):</label>
+                    <select id="PaymentMethod">
+                        <option value="Electronic check">Електронний чек (Electronic check)</option>
+                        <option value="Mailed check">Паперовий чек поштою (Mailed check)</option>
+                        <option value="Bank transfer (automatic)">Банківський переказ (Bank transfer (automatic))</option>
+                        <option value="Credit card (automatic)">Кредитна картка (Credit card (automatic))</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="MonthlyCharges">Щомісячний платіж, $ (MonthlyCharges):</label>
+                    <input type="number" id="MonthlyCharges" step="0.01" required min="0" value="65.00">
+                </div>
+                <div class="form-group full-width">
+                    <label for="TotalCharges">Усього сплачено, $ (TotalCharges) *можна пустим:</label>
+                    <input type="text" id="TotalCharges" placeholder="Залиште порожнім, якщо немає даних">
+                </div>
+            </div>
+        </fieldset>
+
+        <button type="submit">Розрахувати ймовірність відтоку</button>
+    </form>
+
+    <div id="result"></div>
+</div>
+
+<script>
+const getNumericValue = (id) => {
+    const el = document.getElementById(id);
+    if (!el) return null;
+    const val = el.value.trim();
+    return val === "" ? null : parseFloat(val);
+};
+
+document.getElementById('churnForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    // Збираємо абсолютно всі поля з точними унікальними значеннями для вашого пайплайну
+    const payload = {
+        gender: document.getElementById('gender').value,
+        SeniorCitizen: document.getElementById('SeniorCitizen').value, // FastAPI прийме як str/int завдяки коерсії Pydantic
+        Partner: document.getElementById('Partner').value,
+        Dependents: document.getElementById('Dependents').value,
+        tenure: getNumericValue('tenure'),
+        PhoneService: document.getElementById('PhoneService').value,
+        MultipleLines: document.getElementById('MultipleLines').value,
+        InternetService: document.getElementById('InternetService').value,
+        OnlineSecurity: document.getElementById('OnlineSecurity').value,
+        OnlineBackup: document.getElementById('OnlineBackup').value,
+        DeviceProtection: document.getElementById('DeviceProtection').value,
+        TechSupport: document.getElementById('TechSupport').value,
+        StreamingTV: document.getElementById('StreamingTV').value,
+        StreamingMovies: document.getElementById('StreamingMovies').value,
+        Contract: document.getElementById('Contract').value,
+        PaperlessBilling: document.getElementById('PaperlessBilling').value,
+        PaymentMethod: document.getElementById('PaymentMethod').value,
+        MonthlyCharges: getNumericValue('MonthlyCharges'),
+        TotalCharges: getNumericValue('TotalCharges')
+    };
+    console.log("Дані зібрано для відправки:", payload);
+
+    const resultDiv = document.getElementById('result');
+    resultDiv.style.display = 'block';
+
+    try {
+        const response = await fetch('http://127.0.0.1:8000/predict', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)   
+        });
+
+        if (!response.ok) throw new Error('Помилка сервера моделей');
+        
+        const data = await response.json();
+        
+        if (data.status === "error") {
+            throw new Error(data.detail);
+        }
+
+        resultDiv.style.display = 'block';
+        
+        // Перетворюємо у відсотки
+        const probPct = (data.churn_probability * 100).toFixed(1);
+        
+        // Залежно від згенерованої відповіді (0 або 1)
+        if (data.churn_prediction === 1) {
+            resultDiv.className = 'churn';
+            resultDiv.innerHTML = `⚠️ Високий ризик відтоку!<br>Ймовірність того, що клієнт розірве контракт: ${probPct}%`;
+        } else {
+            resultDiv.className = 'loyal';
+            resultDiv.innerHTML = `✅ Клієнт лояльний.<br>Ймовірність відходу всього: ${probPct}%`;
+        }
+
+    } catch (error) {
+        resultDiv.style.display = 'block';
+        resultDiv.className = 'churn';
+        resultDiv.innerText = 'Не вдалося підключитися до FastAPI сервісу. Перевірте консоль.';
+        console.error(error);
+    }
+});
+</script>
+
+</body>
+</html>
