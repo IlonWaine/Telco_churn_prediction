@@ -1,6 +1,8 @@
-# Face Detection Service
+# Telco Customer Churn Predictor
 
-A face detection service built on [MediaPipe](https://ai.google.dev/edge/mediapipe/solutions/vision/face_detector) and [FastAPI](https://fastapi.tiangolo.com/). Supports three input modes: static image, video file, and real-time webcam stream. Exposes an HTTP API for image processing and a WebSocket endpoint for browser-based live detection.
+A machine learning service for predicting customer churn on telecom data ([IBM Telco dataset](https://www.kaggle.com/datasets/blastchar/telco-customer-churn)). Built with XGBoost and scikit-learn pipelines, served via FastAPI. Supports single-record prediction and batch CSV upload with automatic churn factor analysis.
+
+**Validation results:** ROC-AUC `0.857` · Accuracy `0.742`
 
 ---
 
@@ -9,17 +11,22 @@ A face detection service built on [MediaPipe](https://ai.google.dev/edge/mediapi
 ```
 project_root/
 ├── src/
-│   ├── main_api.py                # FastAPI application, HTTP and WebSocket endpoints
-│   ├── detector.py                # PoliInputFaceDetector — core MediaPipe wrapper
-│   ├── agent_face_detector.py     # Standalone detection scripts (image / video / stream)
-│   ├── detection_visualization.py # Bounding box and keypoint drawing utilities
-│   ├── config.py                  # Paths and environment config
-│   └── logger.py                  # Logging configuration
+│   ├── main.py                  # Training pipeline: preprocessing + XGBoost fit + model export
+│   ├── Parameter_tuning.py      # GridSearchCV hyperparameter search, saves best_params.json
+│   ├── result.py                # FastAPI app: /predict and /upload-csv endpoints
+│   ├── data_preprocessing.py    # Column classification and base data preparation
+│   ├── custon_classes.py        # Missing_data_emulation — sklearn-compatible dropout transformer
+│   ├── Config.py                # Project paths
+│   └── experimental.ipynb       # Data exploration and  experiments
+├── data/
+│   └── WA_Fn-UseC_-Telco-Customer-Churn.csv
 ├── models/
-│   └── face_detector.tflite       # MediaPipe face detection model
+│   ├── best_params.json         # Best hyperparameters saved by Parameter_tuning.py
+│   └── churn_predictor_pipeline.pkl
 ├── templates/
-│   └── index.html                 # Frontend for the WebSocket stream demo
-├── .env
+│   ├── home.html
+│   ├── index.html               # Single prediction form
+│   └── upload.html              # CSV batch upload form
 └── requirements.txt
 ```
 
@@ -28,7 +35,7 @@ project_root/
 ## Requirements
 
 - Python 3.10+
-- Webcam (for live stream mode only)
+- Dataset: [Telco Customer Churn CSV](https://www.kaggle.com/datasets/blastchar/telco-customer-churn) → place in `data/`
 
 ---
 
@@ -37,45 +44,40 @@ project_root/
 ```bash
 git clone <repo-url>
 cd <repo-dir>
-python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-```
-
-Download the MediaPipe face detection model and place it in the `models/` folder:
-
-```bash
-wget -q -O models/face_detector.tflite \
-  https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/latest/blaze_face_short_range.tflite
-```
-
-Create a `.env` file in the project root:
-
-```env
-MODEL_PATH=models/face_detector.tflite
+conda create --name myenv
+conda activate myenv    
+conda env create -f environment.yml
 ```
 
 ---
 
-## Running
+## Workflow
 
-### API Server
+### 1. Hyperparameter tuning (optional)
+
+Runs 3-fold GridSearchCV over `n_estimators`, `max_depth`, `learning_rate` and saves the best params to `models/best_params.json`.
 
 ```bash
-uvicorn src.main_api:app --reload
+python src/Parameter_tuning.py
 ```
 
-The server starts at `http://localhost:8000`. Open the browser to see the WebSocket stream demo page.
+### 2. Training
 
-### Standalone Scripts
+Loads `best_params.json` if it exists, otherwise falls back to defaults. Trains the full pipeline and saves the model artifact to `models/churn_predictor_pipeline.pkl`.
 
-```python
-from src.agent_face_detector import image_detection, video_detection, stream_detection
-
-image_detection("path/to/image.jpg")
-video_detection("path/to/video.mp4")
-stream_detection()   # uses webcam (press D to stop)
+```bash
+python src/main.py
 ```
+
+### 3. Serving
+
+```bash
+uvicorn src.result:app --reload
+```
+
+Open `http://localhost:8000` in the browser.
+
+---
 
 ---
 
@@ -83,28 +85,100 @@ stream_detection()   # uses webcam (press D to stop)
 
 ### `GET /`
 
-Returns the HTML page with the live stream demo.
+Home page.
+
+### `GET /predict-page`
+
+Single-record prediction form.
+
+### `GET /upload-page`
+
+CSV batch upload form.
 
 ---
 
-### `POST /process-image`
+### `POST /predict`
 
-Detects faces in an uploaded image and returns the annotated result.
+Predict churn for a single customer. All fields are optional — missing values are handled by the pipeline.
 
-**Request**
+**Request body (JSON)**
 
-| Field  | Type           | Description          |
-|--------|----------------|----------------------|
-| `file` | `UploadFile`   | JPEG or PNG image    |
+```json
+{
+  "gender": "Female",
+  "SeniorCitizen": 0,
+  "Partner": "Yes",
+  "tenure": 12,
+  "Contract": "Month-to-month",
+  "MonthlyCharges": 65.5,
+  "TotalCharges": 786.0
+}
+```
 
 **Response**
 
-- `200 OK` — JPEG image with bounding boxes and keypoints drawn
-- Header `X-Detection-Count` — number of faces detected
+```json
+{
+  "status": "success",
+  "churn_prediction": 1,
+  "churn_probability": 0.812
+}
+```
 
 ---
 
-## HTML page view
+### `POST /upload-csv`
 
-<img width="1912" height="1150" alt="HTML page view image" src="https://github.com/user-attachments/assets/84e64cc1-2743-4063-815a-5c831f950f62" />
+Run batch prediction on a CSV file. Returns the list of at-risk customers sorted by churn probability, plus up to 3 detected churn factors.
+
+**Request:** `multipart/form-data`, field `file` — CSV with the same columns as the training data. `customerID` column is optional but recommended for identifying results.
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "processed_rows": 100,
+  "churn_count": 23,
+  "top_factors": [
+    {
+      "factor": "Short-term contracts (Month-to-month)",
+      "impact": "78.3% of at-risk customers have no long-term commitment."
+    }
+  ],
+  "churn_list": [
+    { "id": "7590-VHVEG", "probability": 94.1 },
+    { "id": "3668-QPYBK", "probability": 87.5 }
+  ]
+}
+```
+
+Churn factors are detected by threshold rules across four dimensions: contract type, internet service type, tech support subscription, and monthly charges vs. company average.
+
+---
+
+## Test Data
+
+`train.py` generates two ready-to-use CSV files for API testing:
+
+```bash
+python src/train.py
+```
+
+| File | Description |
+|------|-------------|
+| `test_good_data.csv` | 100 clean rows, realistic values, no missing data |
+| `test_extreme_data.csv` | 100 rows with outliers, NaNs, unknown categories, and malformed values |
+
+---
+
+## Features
+
+The model uses 19 input features (3 numerical, 16 categorical):
+
+**Numerical:** `tenure`, `MonthlyCharges`, `TotalCharges`
+
+**Categorical:** `gender`, `SeniorCitizen`, `Partner`, `Dependents`, `PhoneService`, `MultipleLines`, `InternetService`, `OnlineSecurity`, `OnlineBackup`, `DeviceProtection`, `TechSupport`, `StreamingTV`, `StreamingMovies`, `Contract`, `PaperlessBilling`, `PaymentMethod`
+
+
 
